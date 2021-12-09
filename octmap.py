@@ -63,18 +63,29 @@ def gen_octree(width=20, height=20, depth=5):
                         np_map.append([i, j+0.5, h/2])
 
 
-    print(np_map)
+    # print(np_map)
 
     pcd =  o3d.geometry.PointCloud()
     pcd.points = o3d.utility.Vector3dVector(np_map)
-
     # o3d.visualization.draw_geometries([pcd])
 
-    octree = o3d.geometry.Octree(max_depth=5) #(max_depth=7, origin=[[1,1,0]], size=1)
+    octree = o3d.geometry.Octree(max_depth=5, origin= np.ndarray(shape=(3,1), buffer=np.array([0,10,0], dtype=float)), size=25) #(max_depth=7, origin=[[1,1,0]], size=1)
+    print(1, octree.get_axis_aligned_bounding_box(), octree.get_center(), octree.is_empty())
+    print(2, octree.size, octree.to_voxel_grid(), octree.origin)
+    print(3, octree.get_min_bound(), type(octree.get_min_bound()))
     octree.convert_from_point_cloud(pcd) #(pcd, size_expand=0.001)
 
     # o3d.visualization.draw_geometries([octree])
     return octree
 
-octree = gen_octree()
-o3d.visualization.draw_geometries([octree])
+# octree = gen_octree()
+
+# print(1, octree.get_axis_aligned_bounding_box(), octree.get_center(), octree.is_empty())
+# print(2, octree.size, octree.to_voxel_grid(), octree.origin)
+# print(3, octree.get_min_bound(), type(octree.get_min_bound()))
+# for i in range(5):
+#     temp_octree_data = octree.locate_leaf_node(np.ndarray(shape=(3,1), buffer=np.array([i,i,i], dtype=float))) # [octcolor, octNodeInfo]
+#     print(i, type(temp_octree_data[0]), temp_octree_data[0])
+#     print(i, type(temp_octree_data[1]), temp_octree_data[1])
+
+# o3d.visualization.draw_geometries([octree])

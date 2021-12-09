@@ -36,7 +36,7 @@ Algorithm class
 '''
 class Dstar_lite:
     
-    def __init__(self, map, x_goal, y_goal, x_start, y_start):
+    def __init__(self, map, height_grid , x_goal, y_goal, x_start, y_start):
         # initialize
         self.start = np.array([x_start, y_start])
         self.goal = np.array([x_goal, y_goal])
@@ -44,7 +44,8 @@ class Dstar_lite:
         self.rhs = np.ones((len(map), len(map[0]))) * np.inf
         self.g = self.rhs.copy()
         self.global_map = map
-        self.sensed_map = np.zeros((len(map), len(map[0])))
+        self.height_grid = height_grid
+        self.sensed_map = map
         self.rhs[self.goal[0], self.goal[1]] = 0
         self.queue = []
         A = Element(self.goal, *self.CalculateKey(self.goal))
@@ -72,7 +73,7 @@ class Dstar_lite:
             heapq.heappush(self.queue, Element(u, *self.CalculateKey(u)))
             
     def ComputeShortestPath(self):
-        while len(self.queue) > 0 and heapq.nsmallest(1, self.queue)[0] < Element(self.start, *self.CalculateKey(self.start))                 or self.rhs[self.start[0], self.start[1]] != self.g[self.start[0], self.start[1]]:
+        while len(self.queue) > 0 and heapq.nsmallest(1, self.queue)[0] < Element(self.start, *self.CalculateKey(self.start)) or self.rhs[self.start[0], self.start[1]] != self.g[self.start[0], self.start[1]]:
             k_old = heapq.nsmallest(1, self.queue)[0]
             u = heapq.heappop(self.queue).key
             temp = Element(u, *self.CalculateKey(u))
@@ -93,13 +94,16 @@ class Dstar_lite:
     # heuristic estimation
     def h_estimate(self, s1, s2):
         #return 0.0
-        return np.linalg.norm(s1 - s2)
+        return np.linalg.norm(np.append(s1 - s2, self.get_height(s1) - self.get_height(s2)))
+    
+    def get_height(self, point):
+        return self.height_grid[tuple(point)]
     
     # fetch successors and predessors
     def succ(self, u):
-        s_list = [np.array([u[0]-1,u[1]-1]), np.array([u[0]-1,u[1]]), np.array([u[0]-1,u[1]+1]), np.array([u[0],u[1]-1]),                  np.array([u[0],u[1]+1]), np.array([u[0]+1,u[1]-1]), np.array([u[0]+1,u[1]]), np.array([u[0]+1,u[1]+1])];
-        row = len(self.global_map)
-        col = len(self.global_map[0])
+        s_list = [np.array([u[0]-1,u[1]-1]), np.array([u[0]-1,u[1]]), np.array([u[0]-1,u[1]+1]), np.array([u[0],u[1]-1]), np.array([u[0],u[1]+1]), np.array([u[0]+1,u[1]-1]), np.array([u[0]+1,u[1]]), np.array([u[0]+1,u[1]+1])];
+        row = len(self.sensed_map)
+        col = len(self.sensed_map[0])
         real_list = []
         for s in s_list:
             if s[0] >= 0 and s[0] < row and s[1] >= 0 and s[1] < col:
@@ -118,8 +122,8 @@ class Dstar_lite:
     # sense the surroundings and return their real-time value
     def sense(self, range_s):
         real_list = []
-        row = len(self.global_map)
-        col = len(self.global_map[0])
+        row = len(self.sensed_map)
+        col = len(self.sensed_map[0])
         for i in range(-range_s, range_s+1):
             for j in range(-range_s, range_s+1):
                 if self.start[0] + i >= 0 and self.start[0] + i < row and self.start[1] + j >= 0 and self.start[1] + j < col:
@@ -128,8 +132,8 @@ class Dstar_lite:
         return real_list
                 
         
-def Main(map, x_goal, y_goal, x_start, y_start):
-    ds = Dstar_lite(map, x_goal, y_goal, x_start, y_start)
+def Main(map, height_grid, x_goal, y_goal, x_start, y_start):
+    ds = Dstar_lite(map, height_grid, x_goal, y_goal, x_start, y_start)
     last = ds.start
     last, curr_update = Scan(ds, last)
     path = [ds.start]
@@ -155,10 +159,12 @@ def Main(map, x_goal, y_goal, x_start, y_start):
     return path, sensed_map, updated_points
 
 # update map information and replan
+# TODO:  map information update followed with goal update
 def Scan(ds, last):
     s_list = ds.sense(3)
     flag = True
     updated_points = []
+    return last, np.asarray(updated_points)
     for s in s_list:
         if ds.sensed_map[s[0],s[1]] != ds.global_map[s[0],s[1]]:
             flag = False
@@ -207,46 +213,47 @@ def maze(width=81, height=51, complexity=.75, density =.75):
     return Z
 
 
-Z = maze(width=100, height=100)
-Z[Z == 1] = np.inf
-print(Z)
-map = Z.copy()
-x_goal = 99
-y_goal = 99
-x_start = 1
-y_start = 1
-# ds = Dstar_lite(map, x_goal, y_goal, x_start, y_start)
-path, sensed_map, updated_points = Main(map, x_goal, y_goal, x_start, y_start)
-print(path)
+# Z = maze(width=100, height=100)
+# Z[Z == 1] = np.inf
+# print(Z)
+# map = Z.copy()
+# x_goal = 99
+# y_goal = 99
+# x_start = 1
+# y_start = 1
+# # ds = Dstar_lite(map, x_goal, y_goal, x_start, y_start)
+# height_grid = np.zeros([100, 100])
+# path, sensed_map, updated_points = Main(map, height_grid, x_goal, y_goal, x_start, y_start)
+# print(path)
 
-# print into txt, which is used for MATLAB to visualize
-file = open('map.txt', 'w')
-for line in map:
-    for number in line:
-        if number > 1: 
-            number = 1
-        file.write(str(int(number)) + ' ') 
-    file.write('\n')
-file.close()
+# # print into txt, which is used for MATLAB to visualize
+# file = open('map.txt', 'w')
+# for line in map:
+#     for number in line:
+#         if number > 1: 
+#             number = 1
+#         file.write(str(int(number)) + ' ') 
+#     file.write('\n')
+# file.close()
     
-file = open('path.txt', 'w')
-for p in path:
-    file.write(str(p[0] + 1) + ' ' + str(p[1] + 1) + '\n')
-file.close()
+# file = open('path.txt', 'w')
+# for p in path:
+#     file.write(str(p[0] + 1) + ' ' + str(p[1] + 1) + '\n')
+# file.close()
 
-file = open('sensed_map.txt', 'a')
-for map in sensed_map:
-    for line in map:
-        for number in line:
-            if number > 1: 
-                number = 1
-            file.write(str(int(number)) + ' ') 
-        file.write('\n')
-file.close()
+# file = open('sensed_map.txt', 'a')
+# for map in sensed_map:
+#     for line in map:
+#         for number in line:
+#             if number > 1: 
+#                 number = 1
+#             file.write(str(int(number)) + ' ') 
+#         file.write('\n')
+# file.close()
 
-file = open('updated_points.txt', 'a')
-for line in updated_points:
-    for number in line:
-        file.write(str(int(number)) + ' ') 
-    file.write('\n')
-file.close()
+# file = open('updated_points.txt', 'a')
+# for line in updated_points:
+#     for number in line:
+#         file.write(str(int(number)) + ' ') 
+#     file.write('\n')
+# file.close()
