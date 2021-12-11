@@ -1,6 +1,7 @@
 import numpy as np
 import open3d as o3d
 import heapq
+import octmap
 '''
     compute surface and height grids
     input: octmap, 3D pos (center of robot), radius of robot, unit width
@@ -63,3 +64,12 @@ class Surface:
         return surface, height_grid
 
 
+def main():
+    octree = octmap.gen_octree()
+    surface, grid = Surface(octree, [0, 0, -2], 20, 1).get_surface()
+    print(surface)
+    print(grid)
+
+
+if __name__ == '__main__':
+    main()
