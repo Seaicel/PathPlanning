@@ -1,4 +1,5 @@
 import math
+import heapq
 
 '''
 This file includes functions to calculate local target
@@ -22,12 +23,10 @@ def cal_local_target(global_map, x_start, y_start, height_grid):
         for edge in cut_edges:
             sorted(edge.nodes, key=lambda x: abs(x_start - x[0]) + abs(y_start - x[1]))
             candidate.append(edge.nodes[0])
-            theta = math.atan((edge.border1[1] - y_start) / (edge.border1[0] - x_start)) - math.atan(
-                (edge.border2[1] - y_start) / (edge.border2[0] - x_start))
-            if theta > math.pi:
-                theta -= 2 * math.pi
-            if theta < -math.pi:
-                theta += 2 * math.pi
+            a2 = (edge.border1[1] - y_start) ** 2 + (edge.border1[0] - x_start) ** 2
+            b2 = (edge.border2[1] - y_start) ** 2 + (edge.border2[0] - x_start) ** 2
+            c2 = (edge.border1[1] - edge.border2[1]) ** 2 + (edge.border1[0] - edge.border2[0]) ** 2
+            theta = math.acos((a2+b2-c2)/(2*math.sqrt(a2*b2)))
             theta = abs(theta / math.pi * 180.0)
             node_p[edge.nodes[0]] = k1 * (1 / (abs(x_start - edge.nodes[0][0])
                                                + abs(y_start - edge.nodes[0][1]))) + k2 * theta
@@ -56,8 +55,6 @@ def gen_cut_edges(global_map):
         cut_edge = CutEdge()
         cut_edge.nodes = [boundary[0]]
         find_adjacent(boundary[0], boundary, cut_edge)
-        if not cut_edge.border2:
-            cut_edge.border2 = cut_edge.nodes[0]
         cut_edges.append(cut_edge)
 
     return cut_edges
@@ -85,15 +82,16 @@ def find_adjacent(cur_node, boundary, cut_edge):
     boundary.remove(cur_node)
     motions = [(-1, 0), (-1, 1), (0, 1), (1, 1),
                (1, 0), (1, -1), (0, -1), (-1, -1)]
-    flag = False  # 用于判断是否是最后一次递归，如果是，这个点是cut edge 最边缘的一点，在计算视野角度时使用
-    for u in motions:
-        adj_node = (cur_node[0] + u[0], cur_node[1] + u[1])
-        if adj_node in boundary:
-            flag = True
-            cut_edge.nodes.append(adj_node)
-            find_adjacent(adj_node, boundary, cut_edge)
-    if flag is False:
-        if cut_edge.border1:
-            cut_edge.border1 = cur_node
-        elif cut_edge.border2:
-            cut_edge.border2 = cur_node
+    s = [cur_node]
+    while len(s):
+        top = s.pop()
+        for u in motions:
+            new_pos = (top[0] + u[0], top[1] + u[1])
+            if (new_pos in boundary) and (new_pos not in cut_edge.nodes):
+                cut_edge.nodes.append(new_pos)
+                s.append(new_pos)
+                boundary.remove(new_pos)
+    cut_edge.nodes.sort(key=lambda point: (point[0], point[1]))
+    cut_edge.border1 = cut_edge.nodes[0]
+    cut_edge.border2 = cut_edge.nodes[len(cut_edge.nodes)-1]
+

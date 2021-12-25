@@ -2,6 +2,18 @@ import open3d as o3d
 import numpy as np
 from numpy.random import random_integers as rnd
 
+class Octree:
+    def __init__(self, data, resolution):
+        self.data = data
+        self.resolution = resolution
+        self.tree = self.gen_octree(data)
+
+    def gen_octree(self, data):
+        pass
+
+
+
+
 def maze(width=81, height=51, complexity=.75, density =.75):
     # Only odd shapes
     shape = ((height//2)*2+1, (width//2)*2+1)
@@ -31,12 +43,8 @@ def maze(width=81, height=51, complexity=.75, density =.75):
                     x, y = x_, y_
     return Z
 
-def gen_octree(width=20, height=20, depth=5):
-
-    np_maze = maze(width, height)
-    print(np_maze)
-
-    depth = 5
+def gen_pointcloud_from_map(np_maze):
+    depth = 1
 
     np_map = []
     for i in range(len(np_maze)):
@@ -44,24 +52,74 @@ def gen_octree(width=20, height=20, depth=5):
             if np_maze[i][j] == 1:
                 # np_map.append([i, j, 0])
                 for h in range(depth):
-                    np_map.append([i, j, h/2])
+                    np_map.append([i, j, h/10])
 
     for i in range(len(np_maze)):
         for j in range(len(np_maze[0])):
             if np_maze[i][j] == 1:
-                if i != 0 and np_maze[i-1][j] == 1:
-                    for h in range(depth):
-                        np_map.append([i-0.5, j, h/2])
-                if i != len(np_maze)-1 and np_maze[i+1][j] == 1:
-                    for h in range(depth):
-                        np_map.append([i+0.5, j, h/2])
-                if j != 0 and np_maze[i][j-1] == 1:
-                    for h in range(depth):
-                        np_map.append([i, j-0.5, h/2])
-                if j != len(np_maze[0])-1 and np_maze[i][j+1] == 1:
-                    for h in range(depth):
-                        np_map.append([i, j+0.5, h/2])
+                for num in range(10):
+                    if i != 0 and np_maze[i-1][j] == 1:
+                        for h in range(depth):
+                            np_map.append([i-num/10, j, h/10])
+                    if i != len(np_maze)-1 and np_maze[i+1][j] == 1:
+                        for h in range(depth):
+                            np_map.append([i+num/10, j, h/10])
+                    if j != 0 and np_maze[i][j-1] == 1:
+                        for h in range(depth):
+                            np_map.append([i, j-num/10, h/10])
+                    if j != len(np_maze[0])-1 and np_maze[i][j+1] == 1:
+                        for h in range(depth):
+                            np_map.append([i, j+num/10, h/10])
+    return np_map
 
+
+def gen_pointcloud(width=20, height=20, depth=5):
+    np_maze = maze(width, height)
+    print(np_maze)
+
+    depth = 1
+
+    np_map = []
+    for i in range(len(np_maze)):
+        for j in range(len(np_maze[0])):
+            if np_maze[i][j] == 1:
+                # np_map.append([i, j, 0])
+                for h in range(depth):
+                    np_map.append([i, j, h/10])
+
+    for i in range(len(np_maze)):
+        for j in range(len(np_maze[0])):
+            if np_maze[i][j] == 1:
+                for num in range(10):
+                    if i != 0 and np_maze[i-1][j] == 1:
+                        for h in range(depth):
+                            np_map.append([i-num/10, j, h/10])
+                    if i != len(np_maze)-1 and np_maze[i+1][j] == 1:
+                        for h in range(depth):
+                            np_map.append([i+num/10, j, h/10])
+                    if j != 0 and np_maze[i][j-1] == 1:
+                        for h in range(depth):
+                            np_map.append([i, j-num/10, h/10])
+                    if j != len(np_maze[0])-1 and np_maze[i][j+1] == 1:
+                        for h in range(depth):
+                            np_map.append([i, j+num/10, h/10])
+    return np_map
+
+def gen_octreee_from_points(np_map):
+    pcd =  o3d.geometry.PointCloud()
+    pcd.points = o3d.utility.Vector3dVector(np_map)
+    # o3d.visualization.draw_geometries([pcd])
+
+    octree = o3d.geometry.Octree(max_depth=5, origin= np.ndarray(shape=(3,1), buffer=np.array([0,10,0], dtype=float)), size=25) #(max_depth=7, origin=[[1,1,0]], size=1)
+    # print(1, octree.get_axis_aligned_bounding_box(), octree.get_center(), octree.is_empty())
+    # print(2, octree.size, octree.to_voxel_grid(), octree.origin)
+    # print(3, octree.get_min_bound(), type(octree.get_min_bound()))
+    octree.convert_from_point_cloud(pcd) #(pcd, size_expand=0.001)
+    return octree
+
+def gen_octree(width=20, height=20, depth=5):
+
+    np_map = gen_pointcloud(width, height, depth)
 
     # print(np_map)
 

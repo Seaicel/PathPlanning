@@ -36,7 +36,7 @@ Algorithm class
 '''
 class Dstar_lite:
     
-    def __init__(self, map, height_grid , x_goal, y_goal, x_start, y_start):
+    def __init__(self, map , x_goal, y_goal, x_start, y_start):
         # initialize
         self.start = np.array([x_start, y_start])
         self.goal = np.array([x_goal, y_goal])
@@ -44,7 +44,6 @@ class Dstar_lite:
         self.rhs = np.ones((len(map), len(map[0]))) * np.inf
         self.g = self.rhs.copy()
         self.global_map = map
-        self.height_grid = height_grid
         self.sensed_map = map
         self.rhs[self.goal[0], self.goal[1]] = 0
         self.queue = []
@@ -94,10 +93,8 @@ class Dstar_lite:
     # heuristic estimation
     def h_estimate(self, s1, s2):
         #return 0.0
-        return np.linalg.norm(np.append(s1 - s2, self.get_height(s1) - self.get_height(s2)))
+        return np.linalg.norm(s1 - s2)
     
-    def get_height(self, point):
-        return self.height_grid[tuple(point)]
     
     # fetch successors and predessors
     def succ(self, u):
@@ -132,8 +129,8 @@ class Dstar_lite:
         return real_list
                 
         
-def Main(map, height_grid, x_goal, y_goal, x_start, y_start):
-    ds = Dstar_lite(map, height_grid, x_goal, y_goal, x_start, y_start)
+def Main(map, x_goal, y_goal, x_start, y_start):
+    ds = Dstar_lite(map, x_goal, y_goal, x_start, y_start)
     last = ds.start
     last, curr_update = Scan(ds, last)
     path = [ds.start]
@@ -143,7 +140,7 @@ def Main(map, height_grid, x_goal, y_goal, x_start, y_start):
     count = 0
     while np.sum(np.abs(ds.start - ds.goal)) != 0 and count < 100000:
         count += 1
-        print("curr_location:", ds.start)
+        # print("curr_location:", ds.start)
         s_list = ds.succ(ds.start)
         min_s = np.inf
         for s in s_list:
